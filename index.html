@@ -293,7 +293,7 @@ const USERS = [
 const POS_USER = { name:'Punto de venta', role:'pos' };
 const DEFAULT_PASSWORD = 'asociacion';
 
-const MERCH_CATS = ['Camisetas de hombre','Camisetas de mujer','Botellas','Bragas (buffs)','Merchan antiguo'];
+const DEFAULT_MERCH_CATS = ['Camisetas de hombre','Camisetas de mujer','Botellas','Bragas (buffs)','Merchan antiguo'];
 
 const TABS = [
   { key:'socios', label:'Socios' },
@@ -315,7 +315,7 @@ let state = {
   loginPassword:'',
   loginError:'',
   tab:'socios',
-  data:{ members:[], tasks:[], merch:[], sales:[], events:[], auth:{}, expenses:[], incomes:[], finCats:{ gasto:[], ingreso:[] } },
+  data:{ members:[], tasks:[], merch:[], sales:[], events:[], auth:{}, expenses:[], incomes:[], finCats:{ gasto:[], ingreso:[] }, merchCats:[] },
   toast:null,
 };
 
@@ -353,7 +353,7 @@ async function saveKey(key, value){
 
 async function loadAll(){
   try{
-    const [members, tasks, merch, sales, events, auth, expenses, incomes, finCats] = await Promise.all([
+    const [members, tasks, merch, sales, events, auth, expenses, incomes, finCats, merchCats] = await Promise.all([
       loadKey('app-members', []),
       loadKey('app-tasks', []),
       loadKey('app-merch', []),
@@ -363,6 +363,7 @@ async function loadAll(){
       loadKey('app-expenses', []),
       loadKey('app-incomes', []),
       loadKey('app-fincats', null),
+      loadKey('app-merchcats', null),
     ]);
     let finalAuth = auth;
     if(!finalAuth){
@@ -378,7 +379,12 @@ async function loadAll(){
       };
       await saveKey('app-fincats', finalCats);
     }
-    state.data = { members, tasks, merch, sales, events, auth: finalAuth, expenses, incomes, finCats: finalCats };
+    let finalMerchCats = merchCats;
+    if(!finalMerchCats){
+      finalMerchCats = [...DEFAULT_MERCH_CATS];
+      await saveKey('app-merchcats', finalMerchCats);
+    }
+    state.data = { members, tasks, merch, sales, events, auth: finalAuth, expenses, incomes, finCats: finalCats, merchCats: finalMerchCats };
     state.loading = false;
   }catch(e){
     state.loading = false;
@@ -832,8 +838,9 @@ function renderMerchan(){
   const merch = state.data.merch;
   const sales = state.data.sales;
   const totalIngresos = sales.reduce((s,x)=>s+x.total,0);
+  const cats = state.data.merchCats;
 
-  const catBlocks = MERCH_CATS.map(cat=>{
+  const catBlocks = cats.map(cat=>{
     const items = merch.filter(m=>m.cat===cat);
     const rows = items.length ? items.map(it=>`
       <tr>
@@ -883,6 +890,19 @@ function renderMerchan(){
       <thead><tr><th>Fecha</th><th>Artículo</th><th>Comprador</th><th>Vendido por</th><th>Cant.</th><th>Total</th></tr></thead>
       <tbody>${salesRows}</tbody>
     </table></div>
+
+    ${isAdmin() ? `
+    <div class="cat-heading">Categorías de artículos</div>
+    <div class="card">
+      <div class="row" style="gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+        ${cats.map(c=>`<span class="item-tag">${esc(c)}</span>`).join(' ')}
+      </div>
+      <div class="row" style="gap:6px;">
+        <input id="new-merch-cat" type="text" placeholder="p. ej. Sudaderas, Gorras..."/>
+        <button class="btn btn-sm" id="add-merch-cat-btn">+ Añadir categoría</button>
+      </div>
+    </div>
+    ` : ''}
   `;
 }
 
@@ -907,11 +927,23 @@ function attachMerchanHandlers(){
       render();
     });
   });
+
+  const addCatBtn = document.getElementById('add-merch-cat-btn');
+  if(addCatBtn) addCatBtn.addEventListener('click', async ()=>{
+    const input = document.getElementById('new-merch-cat');
+    const val = input.value.trim();
+    if(!val) return;
+    if(state.data.merchCats.includes(val)){ showToast('Esa categoría ya existe.'); return; }
+    state.data.merchCats.push(val);
+    const ok = await saveKey('app-merchcats', state.data.merchCats);
+    if(ok) showToast('Categoría añadida.');
+    render();
+  });
 }
 
 function openItemModal(item){
   const isEdit = !!item;
-  const catOptions = MERCH_CATS.map(c=>`<option value="${esc(c)}" ${item&&item.cat===c?'selected':''}>${esc(c)}</option>`).join('');
+  const catOptions = state.data.merchCats.map(c=>`<option value="${esc(c)}" ${item&&item.cat===c?'selected':''}>${esc(c)}</option>`).join('');
   const modalHtml = `
     <div class="modal-bg" id="merch-modal-bg">
       <div class="modal">
