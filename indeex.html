@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Asociación Cultural — Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#EFE7D3;
+    --paper-2:#E6DAB9;
+    --card:#FBF7EC;
+    --ink:#232A3D;
+    --ink-soft:#5B6478;
+    --ink-faint:#8A8F7C;
+    --red:#A23B2E;
+    --green:#4B6B4E;
+    --mustard:#BD8A2E;
+    --line:#C9BC93;
+    --shadow: rgba(35,42,61,0.16);
+    --font-display:'Special Elite','Courier New',monospace;
+    --font-body:'Work Sans',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-body);
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(255,255,255,0.35), transparent 40%),
+      var(--paper);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #root{min-height:100vh; display:flex; flex-direction:column;}
+
+  /* ---------- generic ---------- */
+  button{font-family:var(--font-body); cursor:pointer;}
+  input, select{font-family:var(--font-body);}
+  ::selection{ background: var(--mustard); color:#fff; }
+  a{color:inherit;}
+
+  .btn{
+    border:1.5px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    padding:9px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    border-radius:3px;
+    transition:transform .12s ease, background .12s ease, color .12s ease;
+  }
+  .btn:hover{ background:var(--ink); color:var(--card); }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{
+    background:var(--ink); color:var(--card); border-color:var(--ink);
+  }
+  .btn-primary:hover{ background:#3a4360; }
+  .btn-danger{ border-color:var(--red); color:var(--red); }
+  .btn-danger:hover{ background:var(--red); color:#fff; }
+  .btn-ghost{ border-color:transparent; padding:6px 8px; }
+  .btn-ghost:hover{ background:rgba(35,42,61,0.08); color:var(--ink); }
+  .btn-sm{ padding:5px 10px; font-size:12px; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn:disabled:hover{ background:transparent; color:var(--ink); }
+
+  input[type=text], input[type=password], input[type=number], input[type=date], select, textarea{
+    border:1.5px solid var(--line);
+    background:#fff;
+    border-radius:3px;
+    padding:9px 10px;
+    font-size:14px;
+    color:var(--ink);
+    width:100%;
+  }
+  input:focus, select:focus, textarea:focus, button:focus-visible{
+    outline:2px solid var(--mustard);
+    outline-offset:1px;
+    border-color:var(--mustard);
+  }
+  label{ font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:4px; }
+  .field{ margin-bottom:12px; }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow: 0 2px 0 var(--shadow);
+    padding:20px;
+  }
+
+  .stamp{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--font-display);
+    font-size:11.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:5px 11px;
+    border:2px solid currentColor;
+    border-radius:3px;
+    transform:rotate(-2deg);
+    mix-blend-mode:multiply;
+    white-space:nowrap;
+  }
+  .stamp-green{ color:var(--green); }
+  .stamp-red{ color:var(--red); }
+  .stamp-mustard{ color:var(--mustard); }
+
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--ink-faint);
+  }
+  h1,h2,h3{ font-family:var(--font-display); font-weight:400; margin:0; }
+  .section-title{ font-size:20px; margin-bottom:2px; }
+  .muted{ color:var(--ink-soft); }
+  .hr{ border:none; border-top:1px solid var(--line); margin:16px 0; }
+
+  .spinner{
+    width:22px;height:22px;border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--ink);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-wrap{ display:flex; align-items:center; gap:10px; justify-content:center; padding:40px; color:var(--ink-soft); }
+
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--card); padding:10px 18px; border-radius:4px;
+    font-size:13px; z-index:999; box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    animation:toastIn .25s ease;
+  }
+  @keyframes toastIn{ from{opacity:0; transform:translate(-50%,8px);} to{opacity:1; transform:translate(-50%,0);} }
+
+  /* ---------- login ---------- */
+  .login-screen{
+    flex:1; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .login-box{ width:100%; max-width:480px; }
+  .brand{ text-align:center; margin-bottom:28px; }
+  .brand-stamp{
+    display:inline-block; font-family:var(--font-display); font-size:15px;
+    color:var(--red); border:2.5px solid var(--red); border-radius:4px;
+    padding:8px 16px; transform:rotate(-3deg); mix-blend-mode:multiply;
+    letter-spacing:.08em; margin-bottom:14px;
+  }
+  .brand h1{ font-size:26px; letter-spacing:.01em; }
+  .brand p{ color:var(--ink-soft); font-size:13px; margin-top:6px; }
+
+  .user-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px; }
+  .user-card{
+    background:var(--card); border:1.5px solid var(--line); border-radius:5px;
+    padding:14px 12px; text-align:left; font-family:var(--font-display); font-size:15px;
+    transition:border-color .12s ease, transform .12s ease;
+  }
+  .user-card:hover{ border-color:var(--ink); transform:translateY(-1px); }
+  .user-card.selected{ border-color:var(--mustard); border-width:2px; background:#FFFDF6; }
+  .user-card .role-tag{
+    display:block; font-family:var(--font-mono); font-size:10px; text-transform:uppercase;
+    color:var(--ink-faint); margin-top:3px; letter-spacing:.06em;
+  }
+  .pos-card{ border-style:dashed; }
+
+  .login-form{ margin-top:16px; }
+  .login-hint{ font-size:12px; color:var(--ink-faint); margin-top:10px; text-align:center; }
+  .login-error{ color:var(--red); font-size:13px; margin-top:8px; font-weight:600; }
+
+  /* ---------- app shell ---------- */
+  .app-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 22px; border-bottom:1.5px solid var(--ink);
+    background:var(--paper-2);
+    flex-wrap:wrap; gap:10px;
+  }
+  .header-left{ display:flex; align-items:center; gap:12px; }
+  .mini-stamp{
+    font-family:var(--font-display); font-size:11px; color:var(--red);
+    border:2px solid var(--red); border-radius:3px; padding:4px 8px;
+    transform:rotate(-3deg); mix-blend-mode:multiply;
+  }
+  .app-header h1{ font-size:17px; }
+  .header-right{ display:flex; align-items:center; gap:12px; font-size:13px; }
+  .whoami{ font-family:var(--font-mono); color:var(--ink-soft); }
+  .whoami b{ color:var(--ink); }
+
+  .tabs{
+    display:flex; gap:2px; padding:0 22px; background:var(--paper);
+    border-bottom:1.5px solid var(--ink); overflow-x:auto;
+  }
+  .tab-btn{
+    font-family:var(--font-display); font-size:13.5px; letter-spacing:.02em;
+    padding:11px 18px; border:none; background:transparent; color:var(--ink-soft);
+    border-bottom:3px solid transparent; white-space:nowrap;
+  }
+  .tab-btn:hover{ color:var(--ink); }
+  .tab-btn.active{ color:var(--ink); border-bottom-color:var(--mustard); }
+
+  main{ flex:1; padding:22px; max-width:980px; margin:0 auto; width:100%; }
+  @media (max-width:640px){ main{ padding:14px; padding-bottom:84px; } }
+
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .between{ justify-content:space-between; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:560px){ .grid2{ grid-template-columns:1fr; } .user-grid{ grid-template-columns:1fr; } }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{
+    text-align:left; font-family:var(--font-mono); font-size:11px; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--ink-faint); padding:8px 10px; border-bottom:1.5px solid var(--ink);
+  }
+  td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  .table-wrap{ overflow-x:auto; }
+  .num{ font-family:var(--font-mono); }
+
+  .empty-state{ text-align:center; padding:40px 20px; color:var(--ink-soft); }
+  .empty-state .eyebrow{ margin-bottom:6px; }
+
+  .pill-count{
+    font-family:var(--font-mono); font-size:12px; background:var(--card);
+    border:1px solid var(--line); border-radius:20px; padding:3px 11px;
+  }
+
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(35,42,61,0.45); display:flex;
+    align-items:center; justify-content:center; padding:16px; z-index:100;
+  }
+  .modal{ background:var(--card); border-radius:6px; padding:22px; width:100%; max-width:440px; max-height:88vh; overflow-y:auto; }
+
+  /* bottom nav (mobile) */
+  .bottom-nav{
+    display:none; position:fixed; bottom:0; left:0; right:0; background:var(--paper-2);
+    border-top:1.5px solid var(--ink); z-index:50;
+  }
+  @media (max-width:640px){ .bottom-nav{ display:flex; } .tabs{ display:none; } }
+  .bn-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:9px 4px; background:none; border:none; color:var(--ink-soft); font-size:10.5px;
+    font-family:var(--font-mono); letter-spacing:.02em;
+  }
+  .bn-btn.active{ color:var(--ink); }
+  .bn-btn svg{ width:19px; height:19px; }
+
+  .icon{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; }
+
+  .item-tag{
+    font-family:var(--font-mono); font-size:11px; background:var(--paper-2);
+    border:1px solid var(--line); border-radius:3px; padding:2px 7px;
+  }
+
+  .cat-heading{
+    font-family:var(--font-display); font-size:15px; margin:22px 0 10px; padding-bottom:6px;
+    border-bottom:1.5px dashed var(--line);
+  }
+  .cat-heading:first-child{ margin-top:0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCThNGNJUeyX53NWN9Y8OT_ZZ_Ourc6Im8",
+  authDomain: "base-de-datos-hijos-de-anta.firebaseapp.com",
+  projectId: "base-de-datos-hijos-de-anta",
+  storageBucket: "base-de-datos-hijos-de-anta.firebasestorage.app",
+  messagingSenderId: "15390917190",
+  appId: "1:15390917190:web:6eb261ea26b7ac42858047"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const COLLECTION = 'asociacion';
+
+/* ============================================================
+   DATA / CONSTANTS
+============================================================ */
+const USERS = [
+  { name:'Miguel', role:'admin' },
+  { name:'Lucía', role:'admin' },
+  { name:'Sara Moreira', role:'admin' },
+  { name:'Sara Anta', role:'viewer' },
+  { name:'Virginia', role:'viewer' },
+];
+const POS_USER = { name:'Punto de venta', role:'pos' };
+const DEFAULT_PASSWORD = 'asociacion';
+
+const DEFAULT_MERCH_CATS = ['Camisetas de hombre','Camisetas de mujer','Botellas','Bragas (buffs)','Merchan antiguo'];
+const MERCH_INCOME_CAT = 'Merchandising';
+
+const TABS = [
+  { key:'socios', label:'Socios' },
+  { key:'tareas', label:'Tareas' },
+  { key:'merchan', label:'Merchan' },
+  { key:'finanzas', label:'Finanzas' },
+  { key:'calendario', label:'Calendario' },
+  { key:'ajustes', label:'Ajustes' },
+];
+
+/* ============================================================
+   STATE
+============================================================ */
+let state = {
+  loading:true,
+  loadError:null,
+  session:null, // {name, role}
+  loginSelected:null,
+  loginPassword:'',
+  loginError:'',
+  tab:'socios',
+  data:{ members:[], tasks:[], merch:[], sales:[], events:[], auth:{}, expenses:[], incomes:[], finCats:{ gasto:[], ingreso:[] }, merchCats:[] },
+  toast:null,
+};
+
+function setState(patch){ Object.assign(state, patch); render(); }
+function showToast(msg){
+  state.toast = msg; render();
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ state.toast=null; render(); }, 2200);
+}
+
+/* ============================================================
+   STORAGE HELPERS
+============================================================ */
+async function loadKey(key, fallback){
+  const snap = await getDoc(doc(db, COLLECTION, key));
+  if(!snap.exists()) return fallback;
+  const val = snap.data().value;
+  return val===undefined ? fallback : val;
+}
+async function saveKey(key, value){
+  try{
+    await setDoc(doc(db, COLLECTION, key), { value });
+    return true;
+  }catch(e){
+    console.error('firestore save error', key, e);
+    showToast('No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.');
+    return false;
+  }
+}
+
+async function loadAll(){
+  try{
+    const [members, tasks, merch, sales, events, auth, expenses, incomes, finCats, merchCats] = await Promise.all([
+      loadKey('app-members', []),
+      loadKey('app-tasks', []),
+      loadKey('app-merch', []),
+      loadKey('app-sales', []),
+      loadKey('app-events', []),
+      loadKey('app-auth', null),
+      loadKey('app-expenses', []),
+      loadKey('app-incomes', []),
+      loadKey('app-fincats', null),
+      loadKey('app-merchcats', null),
+    ]);
+    let finalAuth = auth;
+    if(!finalAuth){
+      finalAuth = {};
+      [...USERS, POS_USER].forEach(u=>{ finalAuth[u.name] = DEFAULT_PASSWORD; });
+      await saveKey('app-auth', finalAuth);
+    }
+    let finalCats = finCats;
+    if(!finalCats){
+      finalCats = {
+        gasto:['Compras','Seguro','Mantenimiento','Otros'],
+        ingreso:['Cuotas','Subvenciones','Donativos','Eventos','Merchandising','Otros'],
+      };
+      await saveKey('app-fincats', finalCats);
+    }
+    let finalMerchCats = merchCats;
+    if(!finalMerchCats){
+      finalMerchCats = [...DEFAULT_MERCH_CATS];
+      await saveKey('app-merchcats', finalMerchCats);
+    }
+    const usedCats = new Set(merch.map(m=>m.cat).filter(Boolean));
+    const missingCats = [...usedCats].filter(c=>!finalMerchCats.includes(c));
+    if(missingCats.length){
+      finalMerchCats = [...finalMerchCats, ...missingCats];
+      await saveKey('app-merchcats', finalMerchCats);
+    }
+    state.data = { members, tasks, merch, sales, events, auth: finalAuth, expenses, incomes, finCats: finalCats, merchCats: finalMerchCats };
+    state.loading = false;
+  }catch(e){
+    state.loading = false;
+    state.loadError = 'No se pudieron cargar los datos. Comprueba tu conexión y recarga.';
+  }
+  render();
+}
+
+/* ============================================================
+   UTIL
+============================================================ */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function getCurrentCycleStartYear(date){
+  date = date || new Date();
+  const y = date.getFullYear();
+  const m = date.getMonth()+1;
+  return m>=8 ? y : y-1;
+}
+function memberIsCurrent(m){
+  const cur = getCurrentCycleStartYear();
+  return typeof m.paidYear === 'number' && m.paidYear >= cur;
+}
+function cycleLabel(startYear){
+  return startYear+'–'+(startYear+1);
+}
+
+function isAdmin(){ return state.session && state.session.role==='admin'; }
+function isPos(){ return state.session && state.session.role==='pos'; }
+function canWriteMerchSales(){ return isAdmin() || isPos(); }
+
+function ICONS(){
+  return {
+    socios:'<svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2"/><circle cx="17.5" cy="8.5" r="2.6"/><path d="M15.5 13.9c2.9.4 5 2.7 5 6.1"/></svg>',
+    tareas:'<svg class="icon" viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+    merchan:'<svg class="icon" viewBox="0 0 24 24"><path d="M7 3.5 5 8v12.5h14V8l-2-4.5"/><path d="M5 8h14M9 3.5v3a3 3 0 0 0 6 0v-3"/></svg>',
+    finanzas:'<svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 6.5c0-1.9-2-3-5-3s-5 1.3-5 3.3 2 2.9 5 3.4 5 1.3 5 3.4-2 3.2-5 3.2-5-1.1-5-3"/></svg>',
+    calendario:'<svg class="icon" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>',
+    ajustes:'<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1h-.2a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6v-.2a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1z"/></svg>',
+  };
+}
+
+/* ============================================================
+   RENDER: ROOT
+============================================================ */
+function render(){
+  const root = document.getElementById('root');
+  if(state.loading){
+    root.innerHTML = `<div class="loading-wrap"><div class="spinner"></div><span>Cargando datos de la asociación…</span></div>`;
+    return;
+  }
+  if(state.loadError){
+    root.innerHTML = `<div class="loading-wrap"><span>${esc(state.loadError)}</span></div>`;
+    return;
+  }
+  if(!state.session){
+    root.innerHTML = renderLogin();
+    attachLoginHandlers();
+    return;
+  }
+  root.innerHTML = renderApp();
+  attachAppHandlers();
+}
+
+/* ============================================================
+   LOGIN
+============================================================ */
+function renderLogin(){
+  const allUsers = [...USERS, POS_USER];
+  const cards = allUsers.map(u=>{
+    const sel = state.loginSelected===u.name ? 'selected' : '';
+    const posClass = u.role==='pos' ? 'pos-card' : '';
+    const roleLabel = u.role==='admin' ? 'Acceso completo' : u.role==='pos' ? 'Solo punto de venta' : 'Solo lectura';
+    return `<button type="button" class="user-card ${sel} ${posClass}" data-user="${esc(u.name)}">
+      ${esc(u.name)}
+      <span class="role-tag">${roleLabel}</span>
+    </button>`;
+  }).join('');
+
+  const showPwForm = !!state.loginSelected;
+
+  return `
+  <div class="login-screen">
+    <div class="login-box">
+      <div class="brand">
+        <div class="brand-stamp">ASOC. CULTURAL</div>
+        <h1>Gestión de la asociación</h1>
+        <p>Selecciona tu nombre para identificarte</p>
+      </div>
+      <div class="user-grid">${cards}</div>
+      ${showPwForm ? `
+        <div class="login-form">
+          <div class="field">
+            <label for="pw-input">Contraseña de ${esc(state.loginSelected)}</label>
+            <input id="pw-input" type="password" autofocus value="${esc(state.loginPassword)}" />
+          </div>
+          ${state.loginError ? `<div class="login-error">${esc(state.loginError)}</div>` : ''}
+          <button class="btn btn-primary" id="login-submit" style="width:100%; margin-top:6px;">Entrar</button>
+        </div>
+      ` : ''}
+      <p class="login-hint">Contraseña inicial para todos: <b>${DEFAULT_PASSWORD}</b> — cámbiala en Ajustes tras entrar como Miguel, Lucía o Sara Moreira.</p>
+    </div>
+  </div>`;
+}
+
+function attachLoginHandlers(){
+  document.querySelectorAll('.user-card').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setState({ loginSelected: btn.dataset.user, loginPassword:'', loginError:'' });
+      setTimeout(()=>{ const el=document.getElementById('pw-input'); if(el) el.focus(); }, 0);
+    });
+  });
+  const pwInput = document.getElementById('pw-input');
+  if(pwInput){
+    pwInput.addEventListener('input', e=>{ state.loginPassword = e.target.value; });
+    pwInput.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  }
+  const submitBtn = document.getElementById('login-submit');
+  if(submitBtn) submitBtn.addEventListener('click', doLogin);
+}
+
+function doLogin(){
+  const name = state.loginSelected;
+  const all = [...USERS, POS_USER];
+  const u = all.find(x=>x.name===name);
+  if(!u) return;
+  const expected = state.data.auth[name] || DEFAULT_PASSWORD;
+  if(state.loginPassword !== expected){
+    setState({ loginError:'Contraseña incorrecta. Inténtalo de nuevo.' });
+    return;
+  }
+  setState({ session:{ name:u.name, role:u.role }, loginSelected:null, loginPassword:'', loginError:'', tab: u.role==='pos' ? 'merchan' : 'socios' });
+}
+
+function doLogout(){
+  setState({ session:null, loginSelected:null, loginPassword:'', loginError:'' });
+}
+
+/* ============================================================
+   APP SHELL
+============================================================ */
+function visibleTabs(){
+  if(isPos()) return TABS.filter(t=>t.key==='merchan');
+  if(isAdmin()) return TABS;
+  return TABS.filter(t=>t.key!=='ajustes');
+}
+
+function renderApp(){
+  const icons = ICONS();
+  const tabs = visibleTabs();
+  const tabBtns = tabs.map(t=>`<button class="tab-btn ${state.tab===t.key?'active':''}" data-tab="${t.key}">${esc(t.label)}</button>`).join('');
+  const bnBtns = tabs.map(t=>`<button class="bn-btn ${state.tab===t.key?'active':''}" data-tab="${t.key}">${icons[t.key]}<span>${esc(t.label)}</span></button>`).join('');
+
+  let content = '';
+  if(state.tab==='socios') content = renderSocios();
+  else if(state.tab==='tareas') content = renderTareas();
+  else if(state.tab==='merchan') content = renderMerchan();
+  else if(state.tab==='finanzas') content = renderFinanzas();
+  else if(state.tab==='calendario') content = renderCalendario();
+  else if(state.tab==='ajustes') content = renderAjustes();
+
+  return `
+    <div class="app-header">
+      <div class="header-left">
+        <div class="mini-stamp">AC</div>
+        <h1>Asociación Cultural</h1>
+      </div>
+      <div class="header-right">
+        <span class="whoami">Sesión: <b>${esc(state.session.name)}</b></span>
+        <button class="btn btn-sm" id="refresh-btn">Actualizar</button>
+        <button class="btn btn-sm" id="logout-btn">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="tabs">${tabBtns}</div>
+    <main>${content}</main>
+    <div class="bottom-nav">${bnBtns}</div>
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ''}
+  `;
+}
+
+function attachAppHandlers(){
+  const logout = document.getElementById('logout-btn');
+  if(logout) logout.addEventListener('click', doLogout);
+  const refresh = document.getElementById('refresh-btn');
+  if(refresh) refresh.addEventListener('click', async ()=>{
+    const keepSession = state.session, keepTab = state.tab;
+    state.loading = true; render();
+    await loadAll();
+    state.session = keepSession; state.tab = keepTab; state.loading = false;
+    render();
+  });
+  document.querySelectorAll('.tab-btn, .bn-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> setState({ tab: btn.dataset.tab }));
+  });
+  attachTabHandlers();
+}
+
+function attachTabHandlers(){
+  if(state.tab==='socios') attachSociosHandlers();
+  else if(state.tab==='tareas') attachTareasHandlers();
+  else if(state.tab==='merchan') attachMerchanHandlers();
+  else if(state.tab==='finanzas') attachFinanzasHandlers();
+  else if(state.tab==='calendario') attachCalendarioHandlers();
+  else if(state.tab==='ajustes') attachAjustesHandlers();
+}
+
+/* ============================================================
+   SOCIOS
+============================================================ */
+function renderSocios(){
+  const members = state.data.members;
+  const curCycle = getCurrentCycleStartYear();
+  const alCorriente = members.filter(memberIsCurrent);
+  const pendientes = members.filter(m=>!memberIsCurrent(m));
+
+  function rows(list){
+    if(!list.length) return `<tr><td colspan="5" class="empty-state">Sin socios en este apartado.</td></tr>`;
+    return list.map(m=>{
+      const status = memberIsCurrent(m)
+        ? `<span class="stamp stamp-green">Al corriente</span>`
+        : `<span class="stamp stamp-red">Pend. renovación</span>`;
+      const paidLabel = typeof m.paidYear==='number' ? cycleLabel(m.paidYear) : '— sin pagos —';
+      return `<tr>
+        <td><b>${esc(m.nombre)}</b></td>
+        <td class="muted">${esc(m.contacto||'—')}</td>
+        <td class="num">${esc(paidLabel)}</td>
+        <td>${status}</td>
+        <td>
+          ${isAdmin() ? `
+            <div class="row" style="gap:6px;">
+              <button class="btn btn-sm" data-action="renovar" data-id="${m.id}">Marcar pagada ${cycleLabel(curCycle)}</button>
+              <button class="btn btn-sm btn-ghost" data-action="edit-member" data-id="${m.id}">Editar</button>
+              <button class="btn btn-sm btn-danger" data-action="del-member" data-id="${m.id}">Eliminar</button>
+            </div>` : '—'}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  return `
+    <div class="row between" style="margin-bottom:14px; align-items:flex-end;">
+      <div>
+        <div class="eyebrow">Socios</div>
+        <h2 class="section-title">Registro de socios y cuotas</h2>
+        <p class="muted" style="font-size:13px; margin-top:4px;">La cuota se paga en agosto y es válida hasta el 31 de julio del año siguiente. Ciclo actual: <b>${cycleLabel(curCycle)}</b>.</p>
+      </div>
+      ${isAdmin() ? `<button class="btn btn-primary" id="add-member-btn">+ Nuevo socio</button>` : ''}
+    </div>
+
+    <div class="row" style="margin-bottom:18px; gap:10px;">
+      <span class="pill-count">Al corriente: ${alCorriente.length}</span>
+      <span class="pill-count">Pendientes de renovación: ${pendientes.length}</span>
+    </div>
+
+    <div class="cat-heading">Pendientes de renovación</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nombre</th><th>Contacto</th><th>Última cuota</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${rows(pendientes)}</tbody>
+    </table></div>
+
+    <div class="cat-heading">Al corriente de pago</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nombre</th><th>Contacto</th><th>Cuota pagada</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${rows(alCorriente)}</tbody>
+    </table></div>
+  `;
+}
+
+function attachSociosHandlers(){
+  const addBtn = document.getElementById('add-member-btn');
+  if(addBtn) addBtn.addEventListener('click', ()=> openMemberModal(null));
+
+  document.querySelectorAll('[data-action="renovar"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const m = state.data.members.find(x=>x.id===b.dataset.id);
+      if(!m) return;
+      m.paidYear = getCurrentCycleStartYear();
+      const ok = await saveKey('app-members', state.data.members);
+      if(ok) showToast('Cuota marcada como pagada.'); else render();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="edit-member"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const m = state.data.members.find(x=>x.id===b.dataset.id);
+      openMemberModal(m);
+    });
+  });
+  document.querySelectorAll('[data-action="del-member"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este socio?')) return;
+      state.data.members = state.data.members.filter(x=>x.id!==b.dataset.id);
+      await saveKey('app-members', state.data.members);
+      showToast('Socio eliminado.');
+      render();
+    });
+  });
+}
+
+function openMemberModal(member){
+  const isEdit = !!member;
+  const nombre = member ? member.nombre : '';
+  const contacto = member ? member.contacto : '';
+  const modalHtml = `
+    <div class="modal-bg" id="member-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">${isEdit?'Editar socio':'Nuevo socio'}</h3>
+        <div class="field"><label>Nombre</label><input id="m-nombre" type="text" value="${esc(nombre)}"/></div>
+        <div class="field"><label>Contacto (teléfono / email)</label><input id="m-contacto" type="text" value="${esc(contacto)}"/></div>
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="member-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="member-save">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('member-cancel').addEventListener('click', closeModal);
+  document.getElementById('member-modal-bg').addEventListener('click', e=>{ if(e.target.id==='member-modal-bg') closeModal(); });
+  document.getElementById('member-save').addEventListener('click', async ()=>{
+    const nombreVal = document.getElementById('m-nombre').value.trim();
+    const contactoVal = document.getElementById('m-contacto').value.trim();
+    if(!nombreVal){ alert('El nombre es obligatorio.'); return; }
+    if(isEdit){
+      member.nombre = nombreVal; member.contacto = contactoVal;
+    }else{
+      state.data.members.push({ id:uid(), nombre:nombreVal, contacto:contactoVal, paidYear:null });
+    }
+    const ok = await saveKey('app-members', state.data.members);
+    closeModal();
+    if(ok) showToast('Socio guardado.');
+    render();
+  });
+}
+function closeModal(){
+  const el = document.getElementById('member-modal-bg') || document.getElementById('task-modal-bg') || document.getElementById('merch-modal-bg') || document.getElementById('event-modal-bg') || document.getElementById('pw-modal-bg') || document.getElementById('fin-modal-bg');
+  if(el) el.remove();
+}
+
+/* ============================================================
+   TAREAS
+============================================================ */
+function renderTareas(){
+  const tasks = [...state.data.tasks].sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return (a.fecha||'9999').localeCompare(b.fecha||'9999');
+  });
+  const rows = tasks.length ? tasks.map(t=>`
+    <tr style="${t.done?'opacity:.55;':''}">
+      <td>
+        ${isAdmin() ? `<input type="checkbox" data-action="toggle-task" data-id="${t.id}" ${t.done?'checked':''}/>` : (t.done?'✓':'—')}
+      </td>
+      <td><b style="${t.done?'text-decoration:line-through;':''}">${esc(t.titulo)}</b></td>
+      <td class="muted">${esc(t.responsable||'—')}</td>
+      <td class="num">${t.fecha?fmtDate(t.fecha):'—'}</td>
+      <td>${isAdmin() ? `
+        <div class="row" style="gap:6px;">
+          <button class="btn btn-sm btn-ghost" data-action="edit-task" data-id="${t.id}">Editar</button>
+          <button class="btn btn-sm btn-danger" data-action="del-task" data-id="${t.id}">Eliminar</button>
+        </div>` : ''}</td>
+    </tr>`).join('') : `<tr><td colspan="5" class="empty-state">No hay tareas todavía.</td></tr>`;
+
+  return `
+    <div class="row between" style="margin-bottom:16px; align-items:flex-end;">
+      <div><div class="eyebrow">Tareas</div><h2 class="section-title">Tareas pendientes</h2></div>
+      ${isAdmin() ? `<button class="btn btn-primary" id="add-task-btn">+ Nueva tarea</button>` : ''}
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Tarea</th><th>Responsable</th><th>Fecha límite</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  `;
+}
+
+function attachTareasHandlers(){
+  const addBtn = document.getElementById('add-task-btn');
+  if(addBtn) addBtn.addEventListener('click', ()=> openTaskModal(null));
+  document.querySelectorAll('[data-action="toggle-task"]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const t = state.data.tasks.find(x=>x.id===cb.dataset.id);
+      t.done = cb.checked;
+      await saveKey('app-tasks', state.data.tasks);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="edit-task"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const t = state.data.tasks.find(x=>x.id===b.dataset.id);
+      openTaskModal(t);
+    });
+  });
+  document.querySelectorAll('[data-action="del-task"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar esta tarea?')) return;
+      state.data.tasks = state.data.tasks.filter(x=>x.id!==b.dataset.id);
+      await saveKey('app-tasks', state.data.tasks);
+      showToast('Tarea eliminada.');
+      render();
+    });
+  });
+}
+
+function openTaskModal(task){
+  const isEdit = !!task;
+  const allNames = [...USERS.map(u=>u.name)];
+  const respOptions = allNames.map(n=>`<option value="${esc(n)}" ${task&&task.responsable===n?'selected':''}>${esc(n)}</option>`).join('');
+  const modalHtml = `
+    <div class="modal-bg" id="task-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">${isEdit?'Editar tarea':'Nueva tarea'}</h3>
+        <div class="field"><label>Título</label><input id="t-titulo" type="text" value="${esc(task?task.titulo:'')}"/></div>
+        <div class="field"><label>Responsable</label><select id="t-responsable"><option value="">— sin asignar —</option>${respOptions}</select></div>
+        <div class="field"><label>Fecha límite (opcional)</label><input id="t-fecha" type="date" value="${task&&task.fecha?task.fecha:''}"/></div>
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="task-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="task-save">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('task-cancel').addEventListener('click', closeModal);
+  document.getElementById('task-modal-bg').addEventListener('click', e=>{ if(e.target.id==='task-modal-bg') closeModal(); });
+  document.getElementById('task-save').addEventListener('click', async ()=>{
+    const titulo = document.getElementById('t-titulo').value.trim();
+    const responsable = document.getElementById('t-responsable').value;
+    const fecha = document.getElementById('t-fecha').value;
+    if(!titulo){ alert('El título es obligatorio.'); return; }
+    if(isEdit){
+      task.titulo=titulo; task.responsable=responsable; task.fecha=fecha||null;
+    }else{
+      state.data.tasks.push({ id:uid(), titulo, responsable, fecha: fecha||null, done:false });
+    }
+    const ok = await saveKey('app-tasks', state.data.tasks);
+    closeModal();
+    if(ok) showToast('Tarea guardada.');
+    render();
+  });
+}
+
+/* ============================================================
+   MERCHANDISING
+============================================================ */
+function renderMerchan(){
+  const merch = state.data.merch;
+  const sales = state.data.sales;
+  const totalIngresos = sales.reduce((s,x)=>s+x.total,0);
+  const looseCats = merch.map(m=>m.cat).filter(c=>c && !state.data.merchCats.includes(c));
+  const cats = [...state.data.merchCats, ...new Set(looseCats)];
+
+  const catBlocks = cats.map(cat=>{
+    const items = merch.filter(m=>m.cat===cat);
+    const rows = items.length ? items.map(it=>`
+      <tr>
+        <td><b>${esc(it.modelo)}</b></td>
+        <td>${esc(it.talla||'—')}</td>
+        <td class="num">${it.stock}</td>
+        <td class="num">${it.precio.toFixed(2)} €</td>
+        <td>${isAdmin() ? `
+          <div class="row" style="gap:6px;">
+            <button class="btn btn-sm btn-ghost" data-action="edit-item" data-id="${it.id}">Editar</button>
+            <button class="btn btn-sm btn-danger" data-action="del-item" data-id="${it.id}">Eliminar</button>
+          </div>` : ''}</td>
+      </tr>`).join('') : `<tr><td colspan="5" class="empty-state">Sin artículos en esta categoría.</td></tr>`;
+    return `
+      <div class="cat-heading">${esc(cat)}</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Modelo</th><th>Talla</th><th>Stock</th><th>Precio</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  }).join('');
+
+  const recentSales = [...sales].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,30);
+  const salesRows = recentSales.length ? recentSales.map(s=>`
+    <tr>
+      <td class="num">${fmtDate(s.fecha)}</td>
+      <td>${esc(s.itemLabel)}</td>
+      <td class="muted">${esc(s.comprador||'—')}</td>
+      <td>${esc(s.vendedor)}</td>
+      <td class="num">${s.cantidad}</td>
+      <td class="num">${s.total.toFixed(2)} €</td>
+      <td>${isAdmin() ? `
+        <div class="row" style="gap:6px;">
+          <button class="btn btn-sm btn-ghost" data-action="edit-sale" data-id="${s.id}">Editar</button>
+          <button class="btn btn-sm btn-danger" data-action="del-sale" data-id="${s.id}">Eliminar</button>
+        </div>` : ''}</td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty-state">Sin ventas registradas todavía.</td></tr>`;
+
+  return `
+    <div class="row between" style="margin-bottom:6px; align-items:flex-end;">
+      <div><div class="eyebrow">Merchandising</div><h2 class="section-title">Artículos y ventas</h2></div>
+      <div class="row" style="gap:8px;">
+        ${canWriteMerchSales() ? `<button class="btn btn-primary" id="add-sale-btn">+ Registrar venta</button>` : ''}
+        ${isAdmin() ? `<button class="btn" id="add-item-btn">+ Nuevo artículo</button>` : ''}
+        ${isAdmin() ? `<button class="btn" id="export-stock-btn">Exportar stock a Excel</button>` : ''}
+      </div>
+    </div>
+    <p class="muted" style="font-size:13px; margin-bottom:18px;">Ingresos totales por merchandising: <b class="num">${totalIngresos.toFixed(2)} €</b> — cada venta se refleja automáticamente como ingreso en Finanzas.</p>
+
+    ${catBlocks}
+
+    <div class="cat-heading">Últimas ventas</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Artículo</th><th>Comprador</th><th>Vendido por</th><th>Cant.</th><th>Total</th><th></th></tr></thead>
+      <tbody>${salesRows}</tbody>
+    </table></div>
+
+    ${isAdmin() ? `
+    <div class="cat-heading">Categorías de artículos</div>
+    <div class="card">
+      <div class="row" style="gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+        ${cats.map(c=>`<span class="item-tag">${esc(c)}</span>`).join(' ')}
+      </div>
+      <div class="row" style="gap:6px;">
+        <input id="new-merch-cat" type="text" placeholder="p. ej. Sudaderas, Gorras..."/>
+        <button class="btn btn-sm" id="add-merch-cat-btn">+ Añadir categoría</button>
+      </div>
+    </div>
+    ` : ''}
+  `;
+}
+
+function attachMerchanHandlers(){
+  const addItemBtn = document.getElementById('add-item-btn');
+  if(addItemBtn) addItemBtn.addEventListener('click', ()=> openItemModal(null));
+  const addSaleBtn = document.getElementById('add-sale-btn');
+  if(addSaleBtn) addSaleBtn.addEventListener('click', openSaleModal);
+  const exportStockBtn = document.getElementById('export-stock-btn');
+  if(exportStockBtn) exportStockBtn.addEventListener('click', exportStockExcel);
+
+  document.querySelectorAll('[data-action="edit-item"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const it = state.data.merch.find(x=>x.id===b.dataset.id);
+      openItemModal(it);
+    });
+  });
+  document.querySelectorAll('[data-action="del-item"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este artículo?')) return;
+      state.data.merch = state.data.merch.filter(x=>x.id!==b.dataset.id);
+      await saveKey('app-merch', state.data.merch);
+      showToast('Artículo eliminado.');
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="edit-sale"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const s = state.data.sales.find(x=>x.id===b.dataset.id);
+      if(s) openEditSaleModal(s);
+    });
+  });
+  document.querySelectorAll('[data-action="del-sale"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar esta venta? Se devolverá el stock del artículo y se quitará el ingreso asociado en Finanzas.')) return;
+      await deleteSale(b.dataset.id);
+    });
+  });
+
+  const addCatBtn = document.getElementById('add-merch-cat-btn');
+  if(addCatBtn) addCatBtn.addEventListener('click', async ()=>{
+    const input = document.getElementById('new-merch-cat');
+    const val = input.value.trim();
+    if(!val) return;
+    if(state.data.merchCats.includes(val)){ showToast('Esa categoría ya existe.'); return; }
+    state.data.merchCats.push(val);
+    const ok = await saveKey('app-merchcats', state.data.merchCats);
+    if(ok) showToast('Categoría añadida.');
+    render();
+  });
+}
+
+function openItemModal(item){
+  const isEdit = !!item;
+  const catOptions = state.data.merchCats.map(c=>`<option value="${esc(c)}" ${item&&item.cat===c?'selected':''}>${esc(c)}</option>`).join('');
+  const modalHtml = `
+    <div class="modal-bg" id="merch-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">${isEdit?'Editar artículo':'Nuevo artículo'}</h3>
+        <div class="field"><label>Categoría</label><select id="i-cat">${catOptions}</select></div>
+        <div class="field"><label>Modelo</label><input id="i-modelo" type="text" value="${esc(item?item.modelo:'')}"/></div>
+        <div class="field"><label>Talla (opcional)</label><input id="i-talla" type="text" value="${esc(item?item.talla:'')}"/></div>
+        <div class="grid2">
+          <div class="field"><label>Stock</label><input id="i-stock" type="number" min="0" value="${item?item.stock:0}"/></div>
+          <div class="field"><label>Precio venta (€)</label><input id="i-precio" type="number" min="0" step="0.01" value="${item?item.precio:''}"/></div>
+        </div>
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="merch-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="merch-save">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('merch-cancel').addEventListener('click', closeModal);
+  document.getElementById('merch-modal-bg').addEventListener('click', e=>{ if(e.target.id==='merch-modal-bg') closeModal(); });
+  document.getElementById('merch-save').addEventListener('click', async ()=>{
+    const cat = document.getElementById('i-cat').value;
+    const modelo = document.getElementById('i-modelo').value.trim();
+    const talla = document.getElementById('i-talla').value.trim();
+    const stock = parseInt(document.getElementById('i-stock').value||'0',10);
+    const precio = parseFloat(document.getElementById('i-precio').value||'0');
+    if(!modelo){ alert('El modelo es obligatorio.'); return; }
+    if(isEdit){
+      Object.assign(item, { cat, modelo, talla, stock, precio });
+    }else{
+      state.data.merch.push({ id:uid(), cat, modelo, talla, stock, precio });
+    }
+    const ok = await saveKey('app-merch', state.data.merch);
+    closeModal();
+    if(ok) showToast('Artículo guardado.');
+    render();
+  });
+}
+
+function openSaleModal(){
+  const items = state.data.merch;
+  const cart = []; // {itemId, cantidad}
+  let comprador = '';
+  let vendedor = state.session.name;
+
+  function itemLabelOf(item){
+    return `${item.cat} — ${item.modelo}${item.talla?' ('+item.talla+')':''}`;
+  }
+
+  function cartRows(){
+    return cart.map((c,idx)=>{
+      const item = items.find(i=>i.id===c.itemId);
+      const subtotal = item ? (item.precio*c.cantidad) : 0;
+      return `<tr>
+        <td>${esc(item?itemLabelOf(item):'—')}</td>
+        <td class="num">${c.cantidad}</td>
+        <td class="num">${subtotal.toFixed(2)} €</td>
+        <td><button class="btn btn-sm btn-danger" type="button" data-cart-remove="${idx}">Quitar</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function modalInner(){
+    if(!items.length) return `
+      <h3 style="margin-bottom:14px;">Registrar venta</h3>
+      <p class="muted">Añade primero algún artículo de merchandising.</p>
+      <div class="row" style="justify-content:flex-end; margin-top:16px;"><button class="btn" id="merch-cancel">Cerrar</button></div>`;
+    const itemOptions = items.map(it=>`<option value="${it.id}">${esc(it.cat)} — ${esc(it.modelo)}${it.talla?' ('+esc(it.talla)+')':''} · stock ${it.stock}</option>`).join('');
+    const total = cart.reduce((s,c)=>{ const item=items.find(i=>i.id===c.itemId); return s+(item?item.precio*c.cantidad:0); },0);
+    return `
+      <h3 style="margin-bottom:14px;">Registrar venta</h3>
+      <div class="grid2">
+        <div class="field"><label>Comprador (opcional)</label><input id="s-comprador" type="text" value="${esc(comprador)}"/></div>
+        <div class="field"><label>Vendido por</label><input id="s-vendedor" type="text" value="${esc(vendedor)}"/></div>
+      </div>
+      <p class="muted" style="font-size:12px; margin-top:-6px;">Un mismo comprador puede llevarse varios artículos en esta venta: añádelos uno a uno abajo.</p>
+      <hr class="hr"/>
+      <div class="grid2">
+        <div class="field"><label>Artículo</label><select id="s-item">${itemOptions}</select></div>
+        <div class="field"><label>Cantidad</label><input id="s-cant" type="number" min="1" value="1"/></div>
+      </div>
+      <button class="btn btn-sm" type="button" id="cart-add">+ Añadir artículo a la venta</button>
+      ${cart.length ? `
+        <div class="table-wrap" style="margin-top:14px;"><table>
+          <thead><tr><th>Artículo</th><th>Cant.</th><th>Subtotal</th><th></th></tr></thead>
+          <tbody>${cartRows()}</tbody>
+        </table></div>
+        <p style="text-align:right; margin-top:8px;" class="num"><b>Total venta: ${total.toFixed(2)} €</b></p>
+      ` : `<p class="muted" style="font-size:13px; margin-top:10px;">Todavía no has añadido ningún artículo a esta venta.</p>`}
+      <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button class="btn" type="button" id="merch-cancel">Cancelar</button>
+        ${cart.length ? `<button class="btn btn-primary" type="button" id="sale-save">Registrar venta (${cart.length} artículo${cart.length>1?'s':''})</button>` : ''}
+      </div>`;
+  }
+
+  function paint(){
+    const modal = document.querySelector('#merch-modal-bg .modal');
+    if(modal) modal.innerHTML = modalInner();
+    attachHandlers();
+  }
+
+  function attachHandlers(){
+    const cancelBtn = document.getElementById('merch-cancel');
+    if(cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    const bg = document.getElementById('merch-modal-bg');
+    if(bg) bg.addEventListener('click', e=>{ if(e.target.id==='merch-modal-bg') closeModal(); });
+
+    const comprInput = document.getElementById('s-comprador');
+    if(comprInput) comprInput.addEventListener('input', e=>{ comprador = e.target.value; });
+    const vendInput = document.getElementById('s-vendedor');
+    if(vendInput) vendInput.addEventListener('input', e=>{ vendedor = e.target.value; });
+
+    const addBtn = document.getElementById('cart-add');
+    if(addBtn) addBtn.addEventListener('click', ()=>{
+      const itemId = document.getElementById('s-item').value;
+      const cantidad = parseInt(document.getElementById('s-cant').value||'1',10);
+      if(!itemId || cantidad<1) return;
+      const existing = cart.find(c=>c.itemId===itemId);
+      if(existing) existing.cantidad += cantidad; else cart.push({ itemId, cantidad });
+      paint();
+    });
+    document.querySelectorAll('[data-cart-remove]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        cart.splice(parseInt(b.dataset.cartRemove,10),1);
+        paint();
+      });
+    });
+
+    const saveBtn = document.getElementById('sale-save');
+    if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+      if(!vendedor.trim()){ alert('Indica quién ha vendido.'); return; }
+      if(!state.data.finCats.ingreso.includes(MERCH_INCOME_CAT)){
+        state.data.finCats.ingreso.push(MERCH_INCOME_CAT);
+        await saveKey('app-fincats', state.data.finCats);
+      }
+      const fecha = todayISO();
+      const compradorVal = comprador.trim();
+      const vendedorVal = vendedor.trim();
+      for(const c of cart){
+        const item = items.find(i=>i.id===c.itemId);
+        if(!item) continue;
+        const total = +(item.precio*c.cantidad).toFixed(2);
+        item.stock = Math.max(0, item.stock - c.cantidad);
+        const saleId = uid();
+        const incomeId = uid();
+        state.data.incomes.push({
+          id: incomeId, categoria: MERCH_INCOME_CAT, concepto: itemLabelOf(item), importe: total, fecha,
+          nota: `Venta de merchan${compradorVal?` a ${compradorVal}`:''} (vendido por ${vendedorVal})`,
+          saleId,
+        });
+        state.data.sales.push({
+          id: saleId, itemId:item.id, itemLabel:itemLabelOf(item),
+          comprador: compradorVal, vendedor: vendedorVal, cantidad:c.cantidad, total, fecha,
+          incomeId,
+        });
+      }
+      const ok1 = await saveKey('app-merch', state.data.merch);
+      const ok2 = await saveKey('app-sales', state.data.sales);
+      const ok3 = await saveKey('app-incomes', state.data.incomes);
+      closeModal();
+      if(ok1 && ok2 && ok3) showToast('Venta registrada y reflejada en Finanzas.');
+      render();
+    });
+  }
+
+  document.getElementById('root').insertAdjacentHTML('beforeend', `<div class="modal-bg" id="merch-modal-bg"><div class="modal">${modalInner()}</div></div>`);
+  attachHandlers();
+}
+
+function openEditSaleModal(sale){
+  const items = state.data.merch;
+  const itemOptions = items.map(it=>`<option value="${it.id}" ${it.id===sale.itemId?'selected':''}>${esc(it.cat)} — ${esc(it.modelo)}${it.talla?' ('+esc(it.talla)+')':''} · stock ${it.stock}</option>`).join('');
+  const modalHtml = `
+    <div class="modal-bg" id="merch-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">Editar venta</h3>
+        <div class="field"><label>Artículo</label><select id="es-item">${itemOptions}</select></div>
+        <div class="grid2">
+          <div class="field"><label>Cantidad</label><input id="es-cant" type="number" min="1" value="${sale.cantidad}"/></div>
+          <div class="field"><label>Fecha</label><input id="es-fecha" type="date" value="${sale.fecha}"/></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Comprador</label><input id="es-comprador" type="text" value="${esc(sale.comprador||'')}"/></div>
+          <div class="field"><label>Vendido por</label><input id="es-vendedor" type="text" value="${esc(sale.vendedor)}"/></div>
+        </div>
+        <p class="muted" style="font-size:12px;">Al guardar se ajusta el stock del artículo y el ingreso correspondiente en Finanzas.</p>
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="merch-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="es-save">Guardar cambios</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('merch-cancel').addEventListener('click', closeModal);
+  document.getElementById('merch-modal-bg').addEventListener('click', e=>{ if(e.target.id==='merch-modal-bg') closeModal(); });
+  document.getElementById('es-save').addEventListener('click', async ()=>{
+    const newItemId = document.getElementById('es-item').value;
+    const newCantidad = parseInt(document.getElementById('es-cant').value||'1',10);
+    const newFecha = document.getElementById('es-fecha').value;
+    const newComprador = document.getElementById('es-comprador').value.trim();
+    const newVendedor = document.getElementById('es-vendedor').value.trim();
+    const newItem = items.find(i=>i.id===newItemId);
+    if(!newItem || newCantidad<1 || !newFecha || !newVendedor){ alert('Completa todos los campos correctamente.'); return; }
+
+    const oldItem = items.find(i=>i.id===sale.itemId);
+    if(oldItem) oldItem.stock = oldItem.stock + sale.cantidad;
+    newItem.stock = Math.max(0, newItem.stock - newCantidad);
+
+    const newTotal = +(newItem.precio*newCantidad).toFixed(2);
+    const newLabel = `${newItem.cat} — ${newItem.modelo}${newItem.talla?' ('+newItem.talla+')':''}`;
+
+    sale.itemId = newItem.id; sale.itemLabel = newLabel; sale.cantidad = newCantidad;
+    sale.total = newTotal; sale.fecha = newFecha; sale.comprador = newComprador; sale.vendedor = newVendedor;
+
+    if(!state.data.finCats.ingreso.includes(MERCH_INCOME_CAT)){
+      state.data.finCats.ingreso.push(MERCH_INCOME_CAT);
+      await saveKey('app-fincats', state.data.finCats);
+    }
+    let income = sale.incomeId ? state.data.incomes.find(i=>i.id===sale.incomeId) : null;
+    if(!income){
+      income = { id: uid(), categoria: MERCH_INCOME_CAT, saleId: sale.id };
+      state.data.incomes.push(income);
+      sale.incomeId = income.id;
+    }
+    income.concepto = newLabel; income.importe = newTotal; income.fecha = newFecha;
+    income.nota = `Venta de merchan${newComprador?` a ${newComprador}`:''} (vendido por ${newVendedor})`;
+
+    const ok1 = await saveKey('app-merch', state.data.merch);
+    const ok2 = await saveKey('app-sales', state.data.sales);
+    const ok3 = await saveKey('app-incomes', state.data.incomes);
+    closeModal();
+    if(ok1 && ok2 && ok3) showToast('Venta actualizada.');
+    render();
+  });
+}
+
+async function deleteSale(id){
+  const sale = state.data.sales.find(s=>s.id===id);
+  if(!sale) return;
+  const item = state.data.merch.find(i=>i.id===sale.itemId);
+  if(item) item.stock = item.stock + sale.cantidad;
+  state.data.sales = state.data.sales.filter(s=>s.id!==id);
+  if(sale.incomeId){ state.data.incomes = state.data.incomes.filter(i=>i.id!==sale.incomeId); }
+  const ok1 = await saveKey('app-merch', state.data.merch);
+  const ok2 = await saveKey('app-sales', state.data.sales);
+  const ok3 = await saveKey('app-incomes', state.data.incomes);
+  if(ok1 && ok2 && ok3) showToast('Venta eliminada, stock restaurado.');
+  render();
+}
+
+function exportStockExcel(){
+  if(typeof XLSX==='undefined'){ showToast('No se pudo cargar el exportador a Excel.'); return; }
+  const rows = state.data.merch.map(it=>({
+    Categoría: it.cat, Modelo: it.modelo, Talla: it.talla||'', Stock: it.stock,
+    'Precio (€)': it.precio, 'Valor stock (€)': +(it.stock*it.precio).toFixed(2),
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock');
+  XLSX.writeFile(wb, `stock-merchan-${todayISO()}.xlsx`);
+}
+
+/* ============================================================
+   FINANZAS
+============================================================ */
+function renderFinanzas(){
+  const gastos = [...state.data.expenses].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const ingresos = [...state.data.incomes].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const totalGastos = gastos.reduce((s,x)=>s+x.importe,0);
+  const totalIngresos = ingresos.reduce((s,x)=>s+x.importe,0);
+  const balance = totalIngresos - totalGastos;
+
+  function catTotals(list){
+    const map = {};
+    list.forEach(x=>{ map[x.categoria] = (map[x.categoria]||0) + x.importe; });
+    return map;
+  }
+  function catRows(map){
+    const keys = Object.keys(map);
+    if(!keys.length) return `<tr><td colspan="2" class="empty-state">Sin datos.</td></tr>`;
+    return keys.map(k=>`<tr><td>${esc(k)}</td><td class="num">${map[k].toFixed(2)} €</td></tr>`).join('');
+  }
+  function entryRows(list, type){
+    if(!list.length) return `<tr><td colspan="5" class="empty-state">Sin registros todavía.</td></tr>`;
+    return list.map(x=>`
+      <tr>
+        <td class="num">${fmtDate(x.fecha)}</td>
+        <td><span class="item-tag">${esc(x.categoria)}</span></td>
+        <td><b>${esc(x.concepto)}</b>${x.nota?`<div class="muted" style="font-size:12px;">${esc(x.nota)}</div>`:''}</td>
+        <td class="num">${x.importe.toFixed(2)} €</td>
+        <td>${isAdmin() ? `<button class="btn btn-sm btn-danger" data-action="del-${type}" data-id="${x.id}">Eliminar</button>` : ''}</td>
+      </tr>`).join('');
+  }
+
+  return `
+    <div class="row between" style="margin-bottom:6px; align-items:flex-end;">
+      <div><div class="eyebrow">Finanzas</div><h2 class="section-title">Gastos e ingresos</h2></div>
+      <button class="btn" id="export-excel-btn">Exportar a Excel</button>
+    </div>
+
+    <div class="row" style="gap:10px; margin:14px 0 22px;">
+      <span class="pill-count">Ingresos: ${totalIngresos.toFixed(2)} €</span>
+      <span class="pill-count">Gastos: ${totalGastos.toFixed(2)} €</span>
+      <span class="pill-count" style="border-color:${balance>=0?'var(--green)':'var(--red)'}; color:${balance>=0?'var(--green)':'var(--red)'};">Balance: ${balance.toFixed(2)} €</span>
+    </div>
+
+    <div class="grid2" style="margin-bottom:10px;">
+      <div>
+        <div class="cat-heading" style="margin-top:0;">Ingresos por categoría</div>
+        <table><tbody>${catRows(catTotals(ingresos))}</tbody></table>
+      </div>
+      <div>
+        <div class="cat-heading" style="margin-top:0;">Gastos por categoría</div>
+        <table><tbody>${catRows(catTotals(gastos))}</tbody></table>
+      </div>
+    </div>
+
+    <div class="row between" style="align-items:flex-end; margin-top:26px;">
+      <div class="cat-heading" style="margin:0;">Ingresos</div>
+      ${isAdmin() ? `<button class="btn btn-sm btn-primary" id="add-income-btn">+ Nuevo ingreso</button>` : ''}
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Importe</th><th></th></tr></thead>
+      <tbody>${entryRows(ingresos,'income')}</tbody>
+    </table></div>
+
+    <div class="row between" style="align-items:flex-end; margin-top:26px;">
+      <div class="cat-heading" style="margin:0;">Gastos</div>
+      ${isAdmin() ? `<button class="btn btn-sm btn-primary" id="add-expense-btn">+ Nuevo gasto</button>` : ''}
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Importe</th><th></th></tr></thead>
+      <tbody>${entryRows(gastos,'expense')}</tbody>
+    </table></div>
+
+    ${isAdmin() ? `
+    <div class="cat-heading">Categorías</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:8px;">Categorías de ingresos</div>
+        <div class="row" style="gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+          ${state.data.finCats.ingreso.map(c=>`<span class="item-tag">${esc(c)}</span>`).join(' ')}
+        </div>
+        <div class="row" style="gap:6px;">
+          <input id="new-income-cat" type="text" placeholder="Nueva categoría"/>
+          <button class="btn btn-sm" id="add-income-cat-btn">Añadir</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:8px;">Categorías de gastos</div>
+        <div class="row" style="gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+          ${state.data.finCats.gasto.map(c=>`<span class="item-tag">${esc(c)}</span>`).join(' ')}
+        </div>
+        <div class="row" style="gap:6px;">
+          <input id="new-expense-cat" type="text" placeholder="Nueva categoría"/>
+          <button class="btn btn-sm" id="add-expense-cat-btn">Añadir</button>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+  `;
+}
+
+function attachFinanzasHandlers(){
+  const exportBtn = document.getElementById('export-excel-btn');
+  if(exportBtn) exportBtn.addEventListener('click', exportFinanzasExcel);
+
+  const addIncomeBtn = document.getElementById('add-income-btn');
+  if(addIncomeBtn) addIncomeBtn.addEventListener('click', ()=> openFinanceModal('income'));
+  const addExpenseBtn = document.getElementById('add-expense-btn');
+  if(addExpenseBtn) addExpenseBtn.addEventListener('click', ()=> openFinanceModal('expense'));
+
+  document.querySelectorAll('[data-action="del-income"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este ingreso?')) return;
+      state.data.incomes = state.data.incomes.filter(x=>x.id!==b.dataset.id);
+      await saveKey('app-incomes', state.data.incomes);
+      showToast('Ingreso eliminado.');
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="del-expense"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este gasto?')) return;
+      state.data.expenses = state.data.expenses.filter(x=>x.id!==b.dataset.id);
+      await saveKey('app-expenses', state.data.expenses);
+      showToast('Gasto eliminado.');
+      render();
+    });
+  });
+
+  const addIncomeCatBtn = document.getElementById('add-income-cat-btn');
+  if(addIncomeCatBtn) addIncomeCatBtn.addEventListener('click', ()=> addFinCategory('ingreso'));
+  const addExpenseCatBtn = document.getElementById('add-expense-cat-btn');
+  if(addExpenseCatBtn) addExpenseCatBtn.addEventListener('click', ()=> addFinCategory('gasto'));
+}
+
+async function addFinCategory(type){
+  const inputId = type==='ingreso' ? 'new-income-cat' : 'new-expense-cat';
+  const input = document.getElementById(inputId);
+  const val = input.value.trim();
+  if(!val) return;
+  if(state.data.finCats[type].includes(val)){ showToast('Esa categoría ya existe.'); return; }
+  state.data.finCats[type].push(val);
+  const ok = await saveKey('app-fincats', state.data.finCats);
+  if(ok) showToast('Categoría añadida.');
+  render();
+}
+
+function openFinanceModal(type){
+  const isIncome = type==='income';
+  const cats = isIncome ? state.data.finCats.ingreso : state.data.finCats.gasto;
+  const catOptions = cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  const modalHtml = `
+    <div class="modal-bg" id="fin-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">${isIncome?'Nuevo ingreso':'Nuevo gasto'}</h3>
+        ${cats.length ? `
+        <div class="field"><label>Categoría</label><select id="f-cat">${catOptions}</select></div>
+        <div class="field"><label>Concepto</label><input id="f-concepto" type="text" placeholder="${isIncome?'p. ej. Cuotas de socios agosto':'p. ej. Factura del seguro'}"/></div>
+        <div class="grid2">
+          <div class="field"><label>Importe (€)</label><input id="f-importe" type="number" min="0" step="0.01"/></div>
+          <div class="field"><label>Fecha</label><input id="f-fecha" type="date" value="${todayISO()}"/></div>
+        </div>
+        <div class="field"><label>Nota (opcional)</label><textarea id="f-nota" rows="2"></textarea></div>
+        ` : `<p class="muted">Añade primero una categoría de ${isIncome?'ingresos':'gastos'} desde la sección "Categorías".</p>`}
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="fin-cancel">Cancelar</button>
+          ${cats.length ? `<button class="btn btn-primary" id="fin-save">Guardar</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('fin-cancel').addEventListener('click', closeModal);
+  document.getElementById('fin-modal-bg').addEventListener('click', e=>{ if(e.target.id==='fin-modal-bg') closeModal(); });
+  const saveBtn = document.getElementById('fin-save');
+  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    const categoria = document.getElementById('f-cat').value;
+    const concepto = document.getElementById('f-concepto').value.trim();
+    const importe = parseFloat(document.getElementById('f-importe').value||'0');
+    const fecha = document.getElementById('f-fecha').value;
+    const nota = document.getElementById('f-nota').value.trim();
+    if(!concepto || !fecha || !(importe>0)){ alert('Completa concepto, un importe mayor que 0 y la fecha.'); return; }
+    const entry = { id:uid(), categoria, concepto, importe, fecha, nota };
+    if(isIncome){ state.data.incomes.push(entry); } else { state.data.expenses.push(entry); }
+    const ok = await saveKey(isIncome?'app-incomes':'app-expenses', isIncome?state.data.incomes:state.data.expenses);
+    closeModal();
+    if(ok) showToast('Guardado.');
+    render();
+  });
+}
+
+function exportFinanzasExcel(){
+  if(typeof XLSX==='undefined'){ showToast('No se pudo cargar el exportador a Excel.'); return; }
+  const gastos = [...state.data.expenses].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const ingresos = [...state.data.incomes].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const totalGastos = gastos.reduce((s,x)=>s+x.importe,0);
+  const totalIngresos = ingresos.reduce((s,x)=>s+x.importe,0);
+
+  const wb = XLSX.utils.book_new();
+  const wsIngresos = XLSX.utils.json_to_sheet(ingresos.map(x=>({
+    Fecha:x.fecha, Categoría:x.categoria, Concepto:x.concepto, 'Importe (€)':x.importe, Nota:x.nota||''
+  })));
+  const wsGastos = XLSX.utils.json_to_sheet(gastos.map(x=>({
+    Fecha:x.fecha, Categoría:x.categoria, Concepto:x.concepto, 'Importe (€)':x.importe, Nota:x.nota||''
+  })));
+  const wsResumen = XLSX.utils.json_to_sheet([
+    { Concepto:'Total ingresos', 'Importe (€)': totalIngresos },
+    { Concepto:'Total gastos', 'Importe (€)': totalGastos },
+    { Concepto:'Balance', 'Importe (€)': totalIngresos - totalGastos },
+  ]);
+  XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+  XLSX.utils.book_append_sheet(wb, wsIngresos, 'Ingresos');
+  XLSX.utils.book_append_sheet(wb, wsGastos, 'Gastos');
+  XLSX.writeFile(wb, `finanzas-asociacion-${todayISO()}.xlsx`);
+}
+
+/* ============================================================
+   CALENDARIO
+============================================================ */
+function renderCalendario(){
+  const events = [...state.data.events].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const today = todayISO();
+  const upcoming = events.filter(e=>e.fecha>=today);
+  const past = events.filter(e=>e.fecha<today);
+
+  function evRows(list){
+    return list.length ? list.map(e=>`
+      <tr>
+        <td class="num">${fmtDate(e.fecha)}</td>
+        <td><b>${esc(e.titulo)}</b></td>
+        <td class="muted">${esc(e.nota||'—')}</td>
+        <td>${isAdmin() ? `<button class="btn btn-sm btn-danger" data-action="del-event" data-id="${e.id}">Eliminar</button>` : ''}</td>
+      </tr>`).join('') : `<tr><td colspan="4" class="empty-state">Nada por aquí.</td></tr>`;
+  }
+
+  return `
+    <div class="row between" style="margin-bottom:16px; align-items:flex-end;">
+      <div><div class="eyebrow">Calendario</div><h2 class="section-title">Eventos y recordatorios</h2></div>
+      ${isAdmin() ? `<button class="btn btn-primary" id="add-event-btn">+ Nuevo evento</button>` : ''}
+    </div>
+    <div class="cat-heading">Próximos</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Evento</th><th>Nota</th><th></th></tr></thead>
+      <tbody>${evRows(upcoming)}</tbody>
+    </table></div>
+    <div class="cat-heading">Pasados</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Evento</th><th>Nota</th><th></th></tr></thead>
+      <tbody>${evRows(past)}</tbody>
+    </table></div>
+  `;
+}
+
+function attachCalendarioHandlers(){
+  const addBtn = document.getElementById('add-event-btn');
+  if(addBtn) addBtn.addEventListener('click', openEventModal);
+  document.querySelectorAll('[data-action="del-event"]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este evento?')) return;
+      state.data.events = state.data.events.filter(x=>x.id!==b.dataset.id);
+      await saveKey('app-events', state.data.events);
+      showToast('Evento eliminado.');
+      render();
+    });
+  });
+}
+
+function openEventModal(){
+  const modalHtml = `
+    <div class="modal-bg" id="event-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">Nuevo evento / recordatorio</h3>
+        <div class="field"><label>Título</label><input id="e-titulo" type="text"/></div>
+        <div class="field"><label>Fecha</label><input id="e-fecha" type="date" value="${todayISO()}"/></div>
+        <div class="field"><label>Nota (opcional)</label><textarea id="e-nota" rows="3"></textarea></div>
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="event-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="event-save">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('event-cancel').addEventListener('click', closeModal);
+  document.getElementById('event-modal-bg').addEventListener('click', e=>{ if(e.target.id==='event-modal-bg') closeModal(); });
+  document.getElementById('event-save').addEventListener('click', async ()=>{
+    const titulo = document.getElementById('e-titulo').value.trim();
+    const fecha = document.getElementById('e-fecha').value;
+    const nota = document.getElementById('e-nota').value.trim();
+    if(!titulo || !fecha){ alert('Título y fecha son obligatorios.'); return; }
+    state.data.events.push({ id:uid(), titulo, fecha, nota });
+    const ok = await saveKey('app-events', state.data.events);
+    closeModal();
+    if(ok) showToast('Evento guardado.');
+    render();
+  });
+}
+
+/* ============================================================
+   AJUSTES (solo admins)
+============================================================ */
+function renderAjustes(){
+  const all = [...USERS, POS_USER];
+  const rows = all.map(u=>`
+    <tr>
+      <td><b>${esc(u.name)}</b></td>
+      <td class="muted">${u.role==='admin'?'Acceso completo':u.role==='pos'?'Solo punto de venta':'Solo lectura'}</td>
+      <td><button class="btn btn-sm" data-action="change-pw" data-user="${esc(u.name)}">Cambiar contraseña</button></td>
+    </tr>`).join('');
+  return `
+    <div style="margin-bottom:16px;">
+      <div class="eyebrow">Ajustes</div>
+      <h2 class="section-title">Usuarios y contraseñas</h2>
+      <p class="muted" style="font-size:13px; margin-top:4px;">Solo Miguel, Lucía y Sara Moreira pueden cambiar contraseñas.</p>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Usuario</th><th>Permisos</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  `;
+}
+
+function attachAjustesHandlers(){
+  document.querySelectorAll('[data-action="change-pw"]').forEach(b=>{
+    b.addEventListener('click', ()=> openPasswordModal(b.dataset.user));
+  });
+}
+
+function openPasswordModal(userName){
+  const modalHtml = `
+    <div class="modal-bg" id="pw-modal-bg">
+      <div class="modal">
+        <h3 style="margin-bottom:14px;">Nueva contraseña para ${esc(userName)}</h3>
+        <div class="field"><label>Contraseña</label><input id="pw-new" type="text" value=""/></div>
+        <div class="row" style="justify-content:flex-end; gap:8px; margin-top:16px;">
+          <button class="btn" id="pw-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="pw-save">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('root').insertAdjacentHTML('beforeend', modalHtml);
+  document.getElementById('pw-cancel').addEventListener('click', closeModal);
+  document.getElementById('pw-modal-bg').addEventListener('click', e=>{ if(e.target.id==='pw-modal-bg') closeModal(); });
+  document.getElementById('pw-save').addEventListener('click', async ()=>{
+    const val = document.getElementById('pw-new').value;
+    if(!val){ alert('Escribe una contraseña.'); return; }
+    state.data.auth[userName] = val;
+    const ok = await saveKey('app-auth', state.data.auth);
+    closeModal();
+    if(ok) showToast('Contraseña actualizada.');
+    render();
+  });
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+loadAll();
+</script>
+</body>
+</html>
